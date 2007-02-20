@@ -1,0 +1,90 @@
+jack_oscrolloscope
+
+Copyright (C) 2006  Dominic Sacré  <dominic.sacre@gmx.de>
+
+
+1. Building
+===========
+
+Requirements:
+-------------
+
+ * JACK Audio Connection Kit
+ * SDL (Simple DirectMedia Layer)
+ * OpenGL (needs to be present for compilation, hardware/driver
+   support is optional)
+
+Installation:
+-------------
+
+In the jack_oscrolloscope source directory, run:
+make
+
+and then, as root:
+make install
+
+or, to install somewhere else than /usr/local, e.g. /usr:
+make PREFIX=/usr install
+
+
+2. Usage
+========
+
+Command line options:
+---------------------
+
+jack_oscrolloscope [ options ] [ port1 port2 ... ]
+
+  -n <number>  number of input ports
+  -d <seconds> duration of audio being displayed (default 5s)
+  -c           indicate clipping
+  -s           disable scrolling
+  -x <pixels>  set window width
+  -y <pixels>  set window height
+  -g           use OpenGL for drawing
+  -f <fps>     video frames per second (default 50, 0=unlimited/vsync)
+  -b <frames>  size of audio buffer per port (default 2048)
+  -h           show this help
+
+Config file:
+------------
+
+You can put default options into the config file
+~/.jack_oscrolloscoperc. This file should consist of one single line,
+with the options just like you would have entered them on the command
+line.
+
+Options given on the command line override those in the config file.
+To override options which take no arguments, append 0. E.g. to
+override "-s", use "-s0".
+
+Port arguments are not yet supported in the config file.
+
+
+3. Troubleshooting
+==================
+
+jack_oscrolloscope eats too much CPU:
+-------------------------------------
+
+Unfortunately, with SDL, scrolling currently can't be hardware accelerated
+on X11. If this is an issue, use OpenGL (-g), disable scrolling (-s), or
+reduce the window size / number of tracks.
+
+Too much jitter...:
+-------------------
+
+If scrolling is not as smooth as it ought to be, you should...
+
+  * Use OpenGL. This is enabled by the "-g" switch.
+  * Enable vsync (highly recommended). How to do this depends on your
+    hardware/driver. If you're using the Nvidia driver, jack_oscrolloscope
+    will automatically enable vsync by setting the environment variable
+    __GL_SYNC_TO_VBLANK=1.
+  * Once vsync is working, use the "-f 0" swich to make sure that
+    jack_oscrolloscope runs at the same frequency as your monitor.
+
+You may want to put "-g -f 0" into your ~/.jack_oscrolloscoperc.
+Do not use -f 0 unless vsync is actally working, as that would only cause
+a useless waste of CPU cycles. 
+
