@@ -3,8 +3,7 @@ PREFIX =	/usr/local
 CFLAGS +=	$(shell sdl-config --cflags) $(shell pkg-config --cflags jack) -Wall -std=gnu99
 LIBS =		$(shell sdl-config --libs) $(shell pkg-config --libs jack) -lGL
 
-CFLAGS +=	-O3
-#CFLAGS +=	-g
+CFLAGS +=	-O2
 
 OBJS =		main.o video.o audio.o waves.o
 BIN =		jack_oscrolloscope

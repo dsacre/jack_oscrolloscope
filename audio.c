@@ -17,15 +17,20 @@
 #include "main.h"
 #include "audio.h"
 #include "waves.h"
+#include "util.h"
+
+#define SAMPLES_PER_PIXEL_MULTI     2
+#define SAMPLES_PER_FRAME_MULTI     8
+#define MIN_BUFFER_FRAMES           2048
 
 
 static jack_client_t *client = NULL;
 static jack_port_t **input_ports = NULL;
 
-size_t audio_buffer_frames = DEFAULT_BUFFER_FRAMES;
+int audio_buffer_frames = 0;
 jack_ringbuffer_t **audio_buffers = NULL;
 
-jack_nframes_t audio_samplerate = 0;
+jack_nframes_t audio_samplerate;
 
 static void audio_exit();
 static int audio_process(jack_nframes_t, void *);
@@ -46,8 +51,8 @@ void audio_init(char *name, char **connect_ports)
         exit(EXIT_FAILURE);
     }
 
-    input_ports = malloc(main_nports * sizeof(jack_port_t*));
-    audio_buffers = malloc(main_nports * sizeof(jack_ringbuffer_t*));
+    input_ports = (jack_port_t**)calloc(main_nports, sizeof(jack_port_t*));
+    audio_buffers = (jack_ringbuffer_t**)calloc(main_nports, sizeof(jack_ringbuffer_t*));
 
     for (int n = 0; n < main_nports; n++)
     {
@@ -63,10 +68,33 @@ void audio_init(char *name, char **connect_ports)
             }
             connect_ports++;
         }
-        audio_buffers[n] = jack_ringbuffer_create(sizeof(sample_t) * audio_buffer_frames * waves_duration);
     }
 
     audio_samplerate = jack_get_sample_rate(client);
+
+    audio_adjust();
+}
+
+
+void audio_adjust()
+{
+    int n = next_power_of_two(max3(
+                waves_samples_per_pixel() * SAMPLES_PER_PIXEL_MULTI,
+                waves_samples_per_frame() * SAMPLES_PER_FRAME_MULTI,
+                MIN_BUFFER_FRAMES
+            ));
+
+    if (audio_buffer_frames != n)
+    {
+        audio_buffer_frames = n;
+
+        for (int n = 0; n < main_nports; n++) {
+            if (audio_buffers[n]) {
+                jack_ringbuffer_free(audio_buffers[n]);
+            }
+            audio_buffers[n] = jack_ringbuffer_create(audio_buffer_frames * sizeof(sample_t));
+        }
+    }
 }
 
 
@@ -86,16 +114,20 @@ static void audio_exit()
 
 static int audio_process(jack_nframes_t nframes, void *p)
 {
+    static bool buffer_full = false;
+
     if (!main_run) return 0;
 
     for (int n = 0; n < main_nports; n++)
     {
         void *in = jack_port_get_buffer(input_ports[n], nframes);
         if (jack_ringbuffer_write_space(audio_buffers[n]) >= (nframes * sizeof(sample_t))) {
-            jack_ringbuffer_write(audio_buffers[n], in, (nframes * sizeof(sample_t)));
+            jack_ringbuffer_write(audio_buffers[n], (const char*)in, (nframes * sizeof(sample_t)));
+            buffer_full = false;
         } else {
             // this shouldn't be here...
-            //fprintf(stderr, "insufficient buffer space\n");
+            if (!buffer_full) fprintf(stderr, "insufficient buffer space\n");
+            buffer_full = true;
             break;
         }
     }
@@ -116,5 +148,5 @@ jack_nframes_t audio_buffer_get_available()
 
 void audio_buffer_read(int nport, sample_t *frames, jack_nframes_t nframes)
 {
-    jack_ringbuffer_read(audio_buffers[nport], (void*)frames, nframes * sizeof(sample_t));
+    jack_ringbuffer_read(audio_buffers[nport], (char*)frames, nframes * sizeof(sample_t));
 }

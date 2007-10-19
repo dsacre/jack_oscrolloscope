@@ -12,17 +12,20 @@
 #ifndef _MAIN_H
 #define _MAIN_H
 
-#define min(a, b) ({ typeof(a) _a = (a); typeof(b) _b = (b); _a < _b ? _a : _b; })
-#define max(a, b) ({ typeof(a) _a = (a); typeof(b) _b = (b); _a > _b ? _a : _b; })
-
 #include <stdbool.h>
 
-#define STRINGIFY(x) _STRINGIFY(x)
-#define _STRINGIFY(x) #x
+#define VERSION                     0.4
 
-#define VERSION 0.3
+#define DEFAULT_WIDTH               480
+#define DEFAULT_HEIGHT_PER_TRACK    120
+#define DEFAULT_HEIGHT_MAX          480
+#define DEFAULT_FPS                 50
+
+#define DEFAULT_DURATION            5
+
 
 extern bool main_run;
 extern int  main_nports;
+
 
 #endif // _MAIN_H

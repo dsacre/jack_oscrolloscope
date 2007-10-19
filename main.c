@@ -20,6 +20,7 @@
 #include "video.h"
 #include "audio.h"
 #include "waves.h"
+#include "util.h"
 
 
 bool main_run = false;
@@ -29,21 +30,20 @@ int main_nports = 0;
 static void print_usage()
 {
     fprintf(stderr, "jack_oscrolloscope " STRINGIFY(VERSION) "\n"
-                    "\n"
-                    "Usage:\n"
-                    "  jack_oscrolloscope [ options ] [ port1 port2 ... ]\n"
-                    "\n"
-                    "Options:\n"
-                    "  -n <number>  number of input ports\n"
-                    "  -d <seconds> duration of audio being displayed (default " STRINGIFY(DEFAULT_DURATION) "s)\n"
-                    "  -c           indicate clipping\n"
-                    "  -s           disable scrolling\n"
-                    "  -x <pixels>  set window width\n"
-                    "  -y <pixels>  set window height\n"
-                    "  -g           use OpenGL for drawing\n"
-                    "  -f <fps>     video frames per second (default " STRINGIFY(DEFAULT_FPS) ", 0=unlimited/vsync)\n"
-                    "  -b <frames>  size of audio buffer per port (default " STRINGIFY(DEFAULT_BUFFER_FRAMES) ")\n"
-                    "  -h           show this help\n");
+            "\n"
+            "Usage:\n"
+            "  jack_oscrolloscope [ options ] [ port1 port2 ... ]\n"
+            "\n"
+            "Options:\n"
+            "  -n <number>  number of input ports\n"
+            "  -d <seconds> duration of audio being displayed (default " STRINGIFY(DEFAULT_DURATION) "s)\n"
+            "  -c           indicate clipping\n"
+            "  -s           disable scrolling\n"
+            "  -x <pixels>  set window width\n"
+            "  -y <pixels>  set window height\n"
+            "  -g           use OpenGL for drawing\n"
+            "  -f <fps>     video frames per second (default " STRINGIFY(DEFAULT_FPS) ", 0 = unlimited/vsync)\n"
+            "  -h           show this help\n");
 }
 
 
@@ -59,7 +59,7 @@ static inline bool optional_bool(char* arg)
 static void process_options(int argc, char *argv[])
 {
     int c;
-    char *optstring = "n:d:c::s::x:y:g::f:b:h";
+    char *optstring = "n:d:c::s::x:y:g::f:h";
 
     optind = 1;
     opterr = 1;
@@ -95,9 +95,6 @@ static void process_options(int argc, char *argv[])
                 if (fps) video_ticks_per_frame = 1000 / fps;
                     else video_ticks_per_frame = 0;
               } break;
-            case 'b':
-                audio_buffer_frames = atoi(optarg);
-                break;
             case 'h':
             default:
                 print_usage();
@@ -148,15 +145,14 @@ int main(int argc, char *argv[])
     }
     atexit(SDL_Quit);
 
-    // opt_nports if given, else number of port arguments, but at least one
-    main_nports = max(1, main_nports ? : argc - optind);
+    // use opt_nports if specified, otherwise use the number of port arguments.
+    // if neither is given, create just one port
+    int nportargs = argc - optind;
+    main_nports = max(1, main_nports ? : nportargs);
 
     snprintf(name, 32, "jack_oscrolloscope-%d", getpid());
     audio_init(name, &argv[optind]);
 
-    if (!video_height) {
-        video_height = min(DEFAULT_HEIGHT_PER_TRACK * main_nports, DEFAULT_HEIGHT_MAX);
-    }
     video_init();
     SDL_WM_SetCaption("jack_oscrolloscope", "jack_oscrolloscope");
 
@@ -172,6 +168,7 @@ int main(int argc, char *argv[])
             {
                 case SDL_VIDEORESIZE:
                     video_resize(event.resize.w, event.resize.h);
+                    audio_adjust();
                     waves_adjust();
                     break;
                 case SDL_QUIT:

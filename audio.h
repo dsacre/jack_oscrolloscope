@@ -15,18 +15,16 @@
 #include <jack/types.h>
 #include <jack/ringbuffer.h>
 
-#define DEFAULT_BUFFER_FRAMES 2048
-
 typedef jack_default_audio_sample_t sample_t;
 
 void audio_init(char *name, char **connect_ports);
+void audio_adjust();
 
 jack_nframes_t audio_buffer_get_available();
 void audio_buffer_read(int nport, sample_t *frames, jack_nframes_t nframes);
 
 extern jack_nframes_t audio_samplerate;
 
-extern size_t audio_buffer_frames;
 extern jack_ringbuffer_t **audio_buffers;
 
 #endif // _AUDIO_H

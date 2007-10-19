@@ -18,8 +18,13 @@
 
 #include "main.h"
 #include "video.h"
+#include "util.h"
 
-static const int TEXTURE_WIDTH = 64;
+#define VIDEO_BPP       0
+#define VIDEO_FLAGS_SDL (SDL_RESIZABLE | SDL_SWSURFACE)
+#define VIDEO_FLAGS_GL  (SDL_RESIZABLE | SDL_OPENGL)
+#define SURFACE_FLAGS   SDL_SWSURFACE
+#define TEXTURE_WIDTH   64
 
 
 static void video_exit();
@@ -30,7 +35,7 @@ static void video_update_sdl(int, int);
 
 
 int video_ticks_per_frame = 1000 / DEFAULT_FPS;
-static int ticks = 0;
+static unsigned int ticks = 0;
 
 bool video_scrolling = true;
 
@@ -38,23 +43,25 @@ bool video_use_gl = false;
 int  video_width = DEFAULT_WIDTH;
 int  video_height = 0;
 
+
 SDL_Surface *video_screen = NULL;
 SDL_Surface *video_buffer = NULL;
 SDL_Surface *video_draw_surface = NULL;
 
 SDL_PixelFormat *video_pix_fmt = NULL;
+
+typedef struct {
+    bool use;
+    SDL_Rect rect;
+} update_rect;
+
 update_rect video_updates[2] = { { false } };
+
 
 static GLuint *textures = NULL;
 static int    num_textures = 0;
 static float  tex_coord_h;
 static int    max_texture_size = 0;
-
-static inline int next_power_of_two(int i) {
-    int r = 1;
-    while (r < i) r *= 2;
-    return r;
-}
 
 
 void video_init()
@@ -74,6 +81,10 @@ void video_init()
         SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
         SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    }
+
+    if (!video_height) {
+        video_height = min(DEFAULT_HEIGHT_PER_TRACK * main_nports, DEFAULT_HEIGHT_MAX);
     }
 
     video_set_mode(video_width, video_height);
@@ -121,7 +132,7 @@ void video_set_mode(int w, int h)
         if (textures) glDeleteTextures(num_textures, textures);
 
         num_textures = (int)ceilf((float)video_width / (float)TEXTURE_WIDTH);
-        textures = realloc(textures, num_textures * sizeof(GLuint));
+        textures = (GLuint*)realloc(textures, num_textures * sizeof(GLuint));
         glGenTextures(num_textures, textures);
 
         int tex_w = TEXTURE_WIDTH;
@@ -169,10 +180,11 @@ void video_set_mode(int w, int h)
         // give OpenGL the pixel format it expects
         video_buffer = SDL_CreateRGBSurface(SDL_SWSURFACE, 1, video_height, 32,
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-                                            0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+                0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
 #else
-                                            0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+                0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
 #endif
+        );
         video_pix_fmt = video_buffer->format;
 
         video_draw_surface = video_buffer;
@@ -213,19 +225,20 @@ void video_update_line(int pos)
 }
 
 
+static void inline video_draw_quad(int x, GLuint tex) {
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glBegin(GL_QUADS);
+    // x and y texture coordinates are swapped
+    glTexCoord2f(0.0f,        0.0f); glVertex2i(x,                 0);
+    glTexCoord2f(0.0f,        1.0f); glVertex2i(x + TEXTURE_WIDTH, 0);
+    glTexCoord2f(tex_coord_h, 1.0f); glVertex2i(x + TEXTURE_WIDTH, video_height);
+    glTexCoord2f(tex_coord_h, 0.0f); glVertex2i(x,                 video_height);
+    glEnd();
+}
+
+
 static void video_update_gl(int pos, int prev_pos)
 {
-    void inline draw_quad(int x, GLuint tex) {
-        glBindTexture(GL_TEXTURE_2D, tex);
-        glBegin(GL_QUADS);
-        // x and y texture coordinates are swapped
-        glTexCoord2f(0.0f,        0.0f); glVertex2i(x,                 0);
-        glTexCoord2f(0.0f,        1.0f); glVertex2i(x + TEXTURE_WIDTH, 0);
-        glTexCoord2f(tex_coord_h, 1.0f); glVertex2i(x + TEXTURE_WIDTH, video_height);
-        glTexCoord2f(tex_coord_h, 0.0f); glVertex2i(x,                 video_height);
-        glEnd();
-    }
-
     glEnable(GL_TEXTURE_2D);
 
     glColor3f(1.0f, 1.0f, 1.0f);
@@ -234,16 +247,16 @@ static void video_update_gl(int pos, int prev_pos)
     {
         // this texture needs to be drawn twice
         int ntex = pos / TEXTURE_WIDTH;
-        draw_quad((ntex * TEXTURE_WIDTH) - pos, textures[ntex]);
+        video_draw_quad((ntex * TEXTURE_WIDTH) - pos, textures[ntex]);
         // now start with last quad, this way the last one overlapping the first is not an issue
         for (int n = num_textures - 1; n >= 0; n--) {
-            draw_quad((video_width - pos + n * TEXTURE_WIDTH) % video_width, textures[n]);
+            video_draw_quad((video_width - pos + n * TEXTURE_WIDTH) % video_width, textures[n]);
         }
     }
     else
     {
         for (int n = 0; n < num_textures; n++) {
-            draw_quad(n * TEXTURE_WIDTH, textures[n]);
+            video_draw_quad(n * TEXTURE_WIDTH, textures[n]);
         }
     }
 

@@ -19,6 +19,7 @@
 #include "video.h"
 #include "audio.h"
 #include "waves.h"
+#include "util.h"
 
 
 typedef struct {
@@ -88,7 +89,19 @@ void waves_adjust()
     frames_per_line = (audio_samplerate * waves_duration) / video_width;
     draw_pos = 0;
 
-    frames = realloc(frames, frames_per_line * sizeof(sample_t));
+    frames = (sample_t*)realloc(frames, frames_per_line * sizeof(sample_t));
+}
+
+
+int waves_samples_per_pixel()
+{
+    return audio_samplerate * waves_duration / video_width;
+}
+
+
+int waves_samples_per_frame()
+{
+    return audio_samplerate * video_ticks_per_frame / 1000;
 }
 
 
@@ -99,7 +112,7 @@ static inline void waves_analyze_frames(waves_line *line)
     line->clipping = false;
 
     // find maximum and minimum sample value
-    for (int i = 1; i < frames_per_line; i++) {
+    for (unsigned int i = 1; i < frames_per_line; i++) {
         if (frames[i] > maxi) maxi = frames[i];
         if (frames[i] < mini) mini = frames[i];
         if (frames[i] >= 1.0 || frames[i] <= -1.0) line->clipping = true;

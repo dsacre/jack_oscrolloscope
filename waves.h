@@ -12,11 +12,13 @@
 #ifndef _WAVES_H
 #define _WAVES_H
 
-#define DEFAULT_DURATION 5
-
 void waves_init();
 void waves_adjust();
 void waves_draw();
+
+int waves_samples_per_pixel();
+int waves_samples_per_frame();
+
 
 extern int waves_duration;
 extern bool waves_show_clipping;

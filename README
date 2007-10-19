@@ -43,7 +43,6 @@ jack_oscrolloscope [ options ] [ port1 port2 ... ]
   -y <pixels>  set window height
   -g           use OpenGL for drawing
   -f <fps>     video frames per second (default 50, 0=unlimited/vsync)
-  -b <frames>  size of audio buffer per port (default 2048)
   -h           show this help
 
 Config file:
