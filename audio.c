@@ -84,6 +84,8 @@ void audio_adjust()
                 MIN_BUFFER_FRAMES
             ));
 
+    //printf("buffer_frames = %d\n", n);
+
     if (audio_buffer_frames != n)
     {
         audio_buffer_frames = n;
