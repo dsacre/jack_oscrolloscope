@@ -21,7 +21,7 @@
 
 #define SAMPLES_PER_PIXEL_MULTI     2
 #define SAMPLES_PER_FRAME_MULTI     8
-#define MIN_BUFFER_FRAMES           2048
+#define MIN_BUFFER_FRAMES           4096
 
 
 static jack_client_t *client = NULL;
@@ -128,7 +128,7 @@ static int audio_process(jack_nframes_t nframes, void *p)
             buffer_full = false;
         } else {
             // this shouldn't be here...
-            if (!buffer_full) fprintf(stderr, "insufficient buffer space\n");
+            //if (!buffer_full) fprintf(stderr, "insufficient buffer space\n");
             buffer_full = true;
             break;
         }
