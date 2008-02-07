@@ -47,7 +47,7 @@ static void print_usage()
 }
 
 
-static inline bool optional_bool(char* arg)
+static inline bool optional_bool(const char* arg)
 {
     if (!arg) return true;
     if (strcmp(arg, "1") == 0) return true;
@@ -59,7 +59,7 @@ static inline bool optional_bool(char* arg)
 static void process_options(int argc, char *argv[])
 {
     int c;
-    char *optstring = "n:d:c::s::x:y:g::f:h";
+    const char *optstring = "n:d:c::s::x:y:g::f:h";
 
     optind = 1;
     opterr = 1;
@@ -133,7 +133,6 @@ static void process_configfile()
 
 int main(int argc, char *argv[])
 {
-    char name[32];
     SDL_Event event;
 
     process_configfile();
@@ -150,11 +149,10 @@ int main(int argc, char *argv[])
     int nportargs = argc - optind;
     main_nports = max(1, main_nports ? : nportargs);
 
-    snprintf(name, 32, "jack_oscrolloscope-%d", getpid());
-    audio_init(name, &argv[optind]);
+    audio_init("jack_oscrolloscope", (const char * const *)&argv[optind]);
 
     video_init();
-    SDL_WM_SetCaption("jack_oscrolloscope", "jack_oscrolloscope");
+    SDL_WM_SetCaption(audio_get_client_name(), NULL);
 
     waves_init();
 

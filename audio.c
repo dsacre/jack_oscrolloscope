@@ -36,9 +36,9 @@ static void audio_exit();
 static int audio_process(jack_nframes_t, void *);
 
 
-void audio_init(char *name, char **connect_ports)
+void audio_init(const char *name, const char * const * connect_ports)
 {
-    if ((client = jack_client_new(name)) == 0) {
+    if ((client = jack_client_open(name, (jack_options_t)0, NULL)) == 0) {
         fprintf(stderr, "can't connect to jack server\n");
         exit(EXIT_FAILURE);
     }
@@ -111,6 +111,12 @@ static void audio_exit()
         for (int n = 0; n < main_nports; n++) jack_ringbuffer_free(audio_buffers[n]);
     }
     free(audio_buffers);
+}
+
+
+const char * audio_get_client_name()
+{
+    return jack_get_client_name(client);
 }
 
 
