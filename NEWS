@@ -1,3 +1,7 @@
+2008-09-18: Version 0.6
+
+ * Added option to set JACK client name.
+
 2008-02-07: Version 0.5
 
  * Use jack_client_open() instead of deprecated jack_client_new().

@@ -35,6 +35,7 @@ Command line options:
 
 jack_oscrolloscope [ options ] [ port1 port2 ... ]
 
+  -N <name>    JACK client name
   -n <number>  number of input ports
   -d <seconds> duration of audio being displayed (default 5s)
   -c           indicate clipping

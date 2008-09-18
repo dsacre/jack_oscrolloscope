@@ -24,6 +24,8 @@
 
 
 bool main_run = false;
+
+char * main_client_name = "jack_oscrolloscope";
 int main_nports = 0;
 
 
@@ -35,6 +37,7 @@ static void print_usage()
             "  jack_oscrolloscope [ options ] [ port1 port2 ... ]\n"
             "\n"
             "Options:\n"
+            "  -N <name>    JACK client name\n"
             "  -n <number>  number of input ports\n"
             "  -d <seconds> duration of audio being displayed (default " STRINGIFY(DEFAULT_DURATION) "s)\n"
             "  -c           indicate clipping\n"
@@ -59,7 +62,7 @@ static inline bool optional_bool(const char* arg)
 static void process_options(int argc, char *argv[])
 {
     int c;
-    const char *optstring = "n:d:c::s::x:y:g::f:h";
+    const char *optstring = "N:n:d:c::s::x:y:g::f:h";
 
     optind = 1;
     opterr = 1;
@@ -69,6 +72,9 @@ static void process_options(int argc, char *argv[])
         switch (c) {
             case 1:
                 break;  // end of options
+            case 'N':
+                main_client_name = optarg;
+                break;
             case 'n':
                 main_nports = atoi(optarg);
                 break;
@@ -149,7 +155,7 @@ int main(int argc, char *argv[])
     int nportargs = argc - optind;
     main_nports = max(1, main_nports ? : nportargs);
 
-    audio_init("jack_oscrolloscope", (const char * const *)&argv[optind]);
+    audio_init(main_client_name, (const char * const *)&argv[optind]);
 
     video_init();
     SDL_WM_SetCaption(audio_get_client_name(), NULL);

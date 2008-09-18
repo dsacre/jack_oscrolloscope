@@ -14,7 +14,7 @@
 
 #include <stdbool.h>
 
-#define VERSION                     0.5
+#define VERSION                     0.6
 
 #define DEFAULT_WIDTH               480
 #define DEFAULT_HEIGHT_PER_TRACK    120
