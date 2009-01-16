@@ -1,31 +1,31 @@
-2008-09-18: Version 0.6
+2008-09-18: jack_oscrolloscope 0.6
 
- * Added option to set JACK client name.
+  * Added option to set JACK client name.
 
-2008-02-07: Version 0.5
+2008-02-07: jack_oscrolloscope 0.5
 
- * Use jack_client_open() instead of deprecated jack_client_new().
- * Show JACK client name in window title.
+  * Use jack_client_open() instead of deprecated jack_client_new().
+  * Show JACK client name in window title.
 
-2007-10-20: Version 0.4
+2007-10-20: jack_oscrolloscope 0.4
 
- * jack_oscrolloscope is now a lot smarter when it comes to calculating
-   appropriate audio buffer sizes depending in samplerate, scrolling speed
-   etc.
+  * jack_oscrolloscope is now a lot smarter when it comes to calculating
+    appropriate audio buffer sizes depending in samplerate, scrolling speed
+    etc.
 
-2007-01-02: Version 0.3
+2007-01-02: jack_oscrolloscope 0.3
 
- * Once again overhauled OpenGL drawing. It's still not perfect, but at least
-   it no longer requires any fancy GL extensions.
- * Some other minor fixes.
+  * Once again overhauled OpenGL drawing. It's still not perfect, but at least
+    it no longer requires any fancy GL extensions.
+  * Some other minor fixes.
 
-2006-11-27: Version 0.2
+2006-11-27: jack_oscrolloscope 0.2
 
- * Completely revised drawing code for improved performance, in particular at
-   large window sizes and with many tracks. For now, a display driver
-   supporting the GL_EXT_framebuffer_object extension is required to take
-   advantage of these changes.
+  * Completely revised drawing code for improved performance, in particular at
+    large window sizes and with many tracks. For now, a display driver
+    supporting the GL_EXT_framebuffer_object extension is required to take
+    advantage of these changes.
 
-2006-11-19: Version 0.1
+2006-11-19: jack_oscrolloscope 0.1
 
- * Initial Release.
+  * Initial Release.
