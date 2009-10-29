@@ -25,7 +25,7 @@
 
 bool main_run = false;
 
-char * main_client_name = "jack_oscrolloscope";
+char const * main_client_name = "jack_oscrolloscope";
 int main_nports = 0;
 
 
@@ -123,13 +123,14 @@ static void process_configfile()
     {
         char str[256];
         int argc = 1;
-        char *argv[8] = { NULL };
+        char *argv[16] = { NULL };
 
-        fgets(str, 256, cfg_file);
-        char *token = strtok(str, " \t\n");
-        while (token && argc < 8) {
-            argv[argc++] = token;
-            token = strtok(NULL, " \t\n");
+        if (fgets(str, 256, cfg_file)) {
+            char *token = strtok(str, " \t\n");
+            while (token && argc < 16) {
+                argv[argc++] = token;
+                token = strtok(NULL, " \t\n");
+            }
         }
         fclose(cfg_file);
         process_options(argc, argv);

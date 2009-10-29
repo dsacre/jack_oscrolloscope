@@ -122,6 +122,8 @@ const char * audio_get_client_name()
 
 static int audio_process(jack_nframes_t nframes, void *p)
 {
+    (void)p;
+
     static bool buffer_full = false;
 
     if (!main_run) return 0;

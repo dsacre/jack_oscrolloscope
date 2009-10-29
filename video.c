@@ -55,7 +55,7 @@ typedef struct {
     SDL_Rect rect;
 } update_rect;
 
-update_rect video_updates[2] = { { false } };
+update_rect video_updates[2];
 
 
 static GLuint *textures = NULL;
@@ -66,6 +66,10 @@ static int    max_texture_size = 0;
 
 void video_init()
 {
+    for (int n = 0; n < 2; n++) {
+        video_updates[n].use = false;
+    }
+
     if (video_use_gl)
     {
         if (video_ticks_per_frame == 0) {
@@ -169,7 +173,7 @@ void video_set_mode(int w, int h)
         glViewport(0, 0, video_width, video_height);
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(0.0f, (GLdouble)video_width, (GLdouble)video_height, 0.0f, -1.0f, 1.0f);
+        glOrtho(0.0, (GLdouble)video_width, (GLdouble)video_height, 0.0, -1.0, 1.0);
 
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
@@ -225,7 +229,7 @@ void video_update_line(int pos)
 }
 
 
-static void inline video_draw_quad(int x, GLuint tex) {
+static inline void video_draw_quad(int x, GLuint tex) {
     glBindTexture(GL_TEXTURE_2D, tex);
     glBegin(GL_QUADS);
     // x and y texture coordinates are swapped
@@ -239,6 +243,8 @@ static void inline video_draw_quad(int x, GLuint tex) {
 
 static void video_update_gl(int pos, int prev_pos)
 {
+    (void)prev_pos;
+
     glEnable(GL_TEXTURE_2D);
 
     glColor3f(1.0f, 1.0f, 1.0f);
