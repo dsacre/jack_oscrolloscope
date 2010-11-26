@@ -1,7 +1,7 @@
 /*
  * jack_oscrolloscope
  *
- * Copyright (C) 2006  Dominic Sacré  <dominic.sacre@gmx.de>
+ * Copyright (C) 2006-2010  Dominic Sacré  <dominic.sacre@gmx.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,29 +34,20 @@ static void video_update_gl(int, int);
 static void video_update_sdl(int, int);
 
 
-int video_ticks_per_frame = 1000 / DEFAULT_FPS;
+static SDL_Surface *screen = NULL;
+static SDL_Surface *buffer = NULL;
+static SDL_Surface *draw_surface = NULL;
+
+static SDL_PixelFormat *pix_fmt = NULL;
+
 static unsigned int ticks = 0;
-
-bool video_scrolling = true;
-
-bool video_use_gl = false;
-int  video_width = DEFAULT_WIDTH;
-int  video_height = 0;
-
-
-SDL_Surface *video_screen = NULL;
-SDL_Surface *video_buffer = NULL;
-SDL_Surface *video_draw_surface = NULL;
-
-SDL_PixelFormat *video_pix_fmt = NULL;
 
 typedef struct {
     bool use;
     SDL_Rect rect;
 } update_rect;
 
-update_rect video_updates[2];
-
+static update_rect update_rects[2];
 
 static GLuint *textures = NULL;
 static int    num_textures = 0;
@@ -67,12 +58,12 @@ static int    max_texture_size = 0;
 void video_init()
 {
     for (int n = 0; n < 2; n++) {
-        video_updates[n].use = false;
+        update_rects[n].use = false;
     }
 
-    if (video_use_gl)
+    if (g_use_gl)
     {
-        if (video_ticks_per_frame == 0) {
+        if (g_ticks_per_frame == 0) {
             // attempt to enable vsync, which makes scrolling more smooth.
             // this probably has no effect on anything but nVidia cards.
             setenv("__GL_SYNC_TO_VBLANK", "1", 0);
@@ -87,11 +78,11 @@ void video_init()
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     }
 
-    if (!video_height) {
-        video_height = min(DEFAULT_HEIGHT_PER_TRACK * main_nports, DEFAULT_HEIGHT_MAX);
+    if (!g_height) {
+        g_height = min(DEFAULT_HEIGHT_PER_TRACK * g_nports, DEFAULT_HEIGHT_MAX);
     }
 
-    video_set_mode(video_width, video_height);
+    video_set_mode(g_width, g_height);
 
     atexit(video_exit);
 }
@@ -99,49 +90,48 @@ void video_init()
 
 static void video_exit()
 {
-    if (video_use_gl)
+    if (g_use_gl)
     {
         glDeleteTextures(num_textures, textures);
-        SDL_FreeSurface(video_buffer);
+        SDL_FreeSurface(buffer);
         free(textures);
     }
     else
     {
-        if (video_scrolling) SDL_FreeSurface(video_buffer);
+        if (g_scrolling) SDL_FreeSurface(buffer);
     }
 }
 
 
 void video_set_mode(int w, int h)
 {
-    if (video_use_gl && max_texture_size != 0 && h > max_texture_size) {
+    if (g_use_gl && max_texture_size != 0 && h > max_texture_size) {
         fprintf(stderr, "maximum OpenGL texture size exceeded\n");
         h = max_texture_size;
     }
 
-    video_width = w;
-    video_height = h;
+    g_width = w;
+    g_height = h;
 
-    if ((video_screen = SDL_SetVideoMode(video_width, video_height, VIDEO_BPP,
-                                (video_use_gl ? VIDEO_FLAGS_GL : VIDEO_FLAGS_SDL))) == NULL)
+    if ((screen = SDL_SetVideoMode(g_width, g_height, VIDEO_BPP, (g_use_gl ? VIDEO_FLAGS_GL : VIDEO_FLAGS_SDL))) == NULL)
     {
         fprintf(stderr, "can't set video mode: %s\n", SDL_GetError());
         exit(EXIT_FAILURE);
     }
 
-    if (video_use_gl)
+    if (g_use_gl)
     {
         glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
 
         if (textures) glDeleteTextures(num_textures, textures);
 
-        num_textures = (int)ceilf((float)video_width / (float)TEXTURE_WIDTH);
+        num_textures = (int)ceilf((float)g_width / (float)TEXTURE_WIDTH);
         textures = (GLuint*)realloc(textures, num_textures * sizeof(GLuint));
         glGenTextures(num_textures, textures);
 
         int tex_w = TEXTURE_WIDTH;
-        int tex_h = next_power_of_two(video_height);
-        tex_coord_h = (float)video_height / (float)tex_h;
+        int tex_h = next_power_of_two(g_height);
+        tex_coord_h = (float)g_height / (float)tex_h;
 
         // used to initially fill the textures
         void *black_pixels = calloc(tex_w * tex_h, 4);
@@ -170,41 +160,41 @@ void video_set_mode(int w, int h)
 
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glViewport(0, 0, video_width, video_height);
+        glViewport(0, 0, g_width, g_height);
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(0.0, (GLdouble)video_width, (GLdouble)video_height, 0.0, -1.0, 1.0);
+        glOrtho(0.0, (GLdouble)g_width, (GLdouble)g_height, 0.0, -1.0, 1.0);
 
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
         glDisable(GL_BLEND);
 
-        if (video_buffer) SDL_FreeSurface(video_buffer);
+        if (buffer) SDL_FreeSurface(buffer);
 
         // give OpenGL the pixel format it expects
-        video_buffer = SDL_CreateRGBSurface(SDL_SWSURFACE, 1, video_height, 32,
+        buffer = SDL_CreateRGBSurface(SDL_SWSURFACE, 1, g_height, 32,
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-                0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
+            0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000
 #else
-                0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
+            0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
 #endif
         );
-        video_pix_fmt = video_buffer->format;
+        pix_fmt = buffer->format;
 
-        video_draw_surface = video_buffer;
+        draw_surface = buffer;
         video_update = video_update_gl;
     }
     else // SDL
     {
-        video_pix_fmt = video_screen->format;
+        pix_fmt = screen->format;
 
-        if (video_scrolling) {
-            if (video_buffer) SDL_FreeSurface(video_buffer);
-            video_buffer = SDL_CreateRGBSurface(SURFACE_FLAGS, video_width, video_height, video_pix_fmt->BitsPerPixel,
-                                video_pix_fmt->Rmask, video_pix_fmt->Gmask, video_pix_fmt->Bmask, video_pix_fmt->Amask);
-            video_draw_surface = video_buffer;
+        if (g_scrolling) {
+            if (buffer) SDL_FreeSurface(buffer);
+            buffer = SDL_CreateRGBSurface(SURFACE_FLAGS, g_width, g_height, pix_fmt->BitsPerPixel,
+                                          pix_fmt->Rmask, pix_fmt->Gmask, pix_fmt->Bmask, pix_fmt->Amask);
+            draw_surface = buffer;
         } else {
-            video_draw_surface = video_screen;
+            draw_surface = screen;
         }
         video_update = video_update_sdl;
     }
@@ -219,12 +209,12 @@ void video_resize(int w, int h)
 
 void video_update_line(int pos)
 {
-    if (video_use_gl) {
-        SDL_LockSurface(video_buffer);
+    if (g_use_gl) {
+        SDL_LockSurface(buffer);
         glBindTexture(GL_TEXTURE_2D, textures[pos / TEXTURE_WIDTH]);
         // in the texture, the column is represented as one row!
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, pos % TEXTURE_WIDTH, video_height, 1, GL_RGBA, GL_UNSIGNED_BYTE, video_buffer->pixels);
-        SDL_UnlockSurface(video_buffer);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, pos % TEXTURE_WIDTH, g_height, 1, GL_RGBA, GL_UNSIGNED_BYTE, buffer->pixels);
+        SDL_UnlockSurface(buffer);
     }
 }
 
@@ -235,8 +225,8 @@ static inline void video_draw_quad(int x, GLuint tex) {
     // x and y texture coordinates are swapped
     glTexCoord2f(0.0f,        0.0f); glVertex2i(x,                 0);
     glTexCoord2f(0.0f,        1.0f); glVertex2i(x + TEXTURE_WIDTH, 0);
-    glTexCoord2f(tex_coord_h, 1.0f); glVertex2i(x + TEXTURE_WIDTH, video_height);
-    glTexCoord2f(tex_coord_h, 0.0f); glVertex2i(x,                 video_height);
+    glTexCoord2f(tex_coord_h, 1.0f); glVertex2i(x + TEXTURE_WIDTH, g_height);
+    glTexCoord2f(tex_coord_h, 0.0f); glVertex2i(x,                 g_height);
     glEnd();
 }
 
@@ -249,14 +239,14 @@ static void video_update_gl(int pos, int prev_pos)
 
     glColor3f(1.0f, 1.0f, 1.0f);
 
-    if (video_scrolling)
+    if (g_scrolling)
     {
         // this texture needs to be drawn twice
         int ntex = pos / TEXTURE_WIDTH;
         video_draw_quad((ntex * TEXTURE_WIDTH) - pos, textures[ntex]);
         // now start with last quad, this way the last one overlapping the first is not an issue
         for (int n = num_textures - 1; n >= 0; n--) {
-            video_draw_quad((video_width - pos + n * TEXTURE_WIDTH) % video_width, textures[n]);
+            video_draw_quad((g_width - pos + n * TEXTURE_WIDTH) % g_width, textures[n]);
         }
     }
     else
@@ -272,7 +262,7 @@ static void video_update_gl(int pos, int prev_pos)
 
 static void video_update_sdl(int pos, int prev_pos)
 {
-    if (video_scrolling)
+    if (g_scrolling)
     {
         /*          pos
         *  +--------+--------------------+
@@ -285,17 +275,17 @@ static void video_update_sdl(int pos, int prev_pos)
         */
 
         // left part of source surface first
-        SDL_Rect r_src1 = { 0, 0, pos, video_height };
-        SDL_Rect r_dst1 = { video_width - pos, 0, 0, 0 };
-        SDL_BlitSurface(video_buffer, &r_src1, video_screen, &r_dst1);
+        SDL_Rect r_src1 = { 0, 0, pos, g_height };
+        SDL_Rect r_dst1 = { g_width - pos, 0, 0, 0 };
+        SDL_BlitSurface(buffer, &r_src1, screen, &r_dst1);
         // now the second part
-        SDL_Rect r_src2 = { pos, 0, video_width - pos, video_height };
+        SDL_Rect r_src2 = { pos, 0, g_width - pos, g_height };
         SDL_Rect r_dst2 = { 0, 0, 0, 0 };
-        SDL_BlitSurface(video_buffer, &r_src2, video_screen, &r_dst2);
+        SDL_BlitSurface(buffer, &r_src2, screen, &r_dst2);
 
         // need to update whole window
-        video_updates[0].rect.x = video_updates[0].rect.y = video_updates[0].rect.w = video_updates[0].rect.h = 0;
-        video_updates[0].use = true;
+        update_rects[0].rect.x = update_rects[0].rect.y = update_rects[0].rect.w = update_rects[0].rect.h = 0;
+        update_rects[0].use = true;
     }
     else
     {
@@ -304,49 +294,67 @@ static void video_update_sdl(int pos, int prev_pos)
         // find out which portions of the screen to update
         if (pos >= prev_pos)
         {
-            video_updates[0].rect.x = prev_pos;
-            video_updates[0].rect.w = min(pos + 4 - prev_pos, video_width - prev_pos);
-            if (pos > video_width - 2) {
-                video_updates[1].rect.x = 0;
-                video_updates[1].rect.w = 2;
-                video_updates[1].use = true;
+            update_rects[0].rect.x = prev_pos;
+            update_rects[0].rect.w = min(pos + 4 - prev_pos, g_width - prev_pos);
+            if (pos > g_width - 2) {
+                update_rects[1].rect.x = 0;
+                update_rects[1].rect.w = 2;
+                update_rects[1].use = true;
             }
         }
         else
         {
-            video_updates[0].rect.x = 0;
-            video_updates[0].rect.w = pos + 4;
-            video_updates[0].use = true;
-            video_updates[1].rect.x = prev_pos;
-            video_updates[1].rect.w = video_width - prev_pos;
-            video_updates[1].use = true;
+            update_rects[0].rect.x = 0;
+            update_rects[0].rect.w = pos + 4;
+            update_rects[0].use = true;
+            update_rects[1].rect.x = prev_pos;
+            update_rects[1].rect.w = g_width - prev_pos;
+            update_rects[1].use = true;
         }
-        video_updates[0].use = true;
-        video_updates[0].rect.y = video_updates[1].rect.y = 0;
-        video_updates[0].rect.h = video_updates[1].rect.h = video_height;
+        update_rects[0].use = true;
+        update_rects[0].rect.y = update_rects[1].rect.y = 0;
+        update_rects[0].rect.h = update_rects[1].rect.h = g_height;
     }
 }
 
 
 void video_flip()
 {
-    while (SDL_GetTicks() < ticks + video_ticks_per_frame) {
+    while (SDL_GetTicks() < ticks + g_ticks_per_frame) {
         SDL_Delay(1);
     }
     ticks = SDL_GetTicks();
 
-    if (video_use_gl)
+    if (g_use_gl)
     {
         SDL_GL_SwapBuffers();
     }
     else
     {
         for (int n = 0; n < 2; n++) {
-            if (video_updates[n].use) {
-                SDL_UpdateRect(video_screen, video_updates[n].rect.x, video_updates[n].rect.y,
-                                             video_updates[n].rect.w, video_updates[n].rect.h);
-                video_updates[n].use = false;
+            if (update_rects[n].use) {
+                SDL_UpdateRect(screen, update_rects[n].rect.x, update_rects[n].rect.y,
+                                       update_rects[n].rect.w, update_rects[n].rect.h);
+                update_rects[n].use = false;
             }
         }
     }
+}
+
+
+SDL_Surface *video_get_screen()
+{
+    return screen;
+}
+
+
+SDL_Surface *video_get_draw_surface()
+{
+    return draw_surface;
+}
+
+
+SDL_PixelFormat *video_get_pix_fmt()
+{
+    return pix_fmt;
 }

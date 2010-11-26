@@ -1,7 +1,7 @@
 /*
  * jack_oscrolloscope
  *
- * Copyright (C) 2006  Dominic Sacré  <dominic.sacre@gmx.de>
+ * Copyright (C) 2006-2010  Dominic Sacré  <dominic.sacre@gmx.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,5 @@ void waves_draw();
 
 int waves_samples_per_pixel();
 int waves_samples_per_frame();
-
-
-extern int waves_duration;
-extern bool waves_show_clipping;
 
 #endif // _WAVES_H

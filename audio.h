@@ -1,7 +1,7 @@
 /*
  * jack_oscrolloscope
  *
- * Copyright (C) 2006  Dominic Sacré  <dominic.sacre@gmx.de>
+ * Copyright (C) 2006-2010  Dominic Sacré  <dominic.sacre@gmx.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,12 +21,9 @@ void audio_init(const char *name, const char * const * connect_ports);
 void audio_adjust();
 
 const char * audio_get_client_name();
+jack_nframes_t audio_get_samplerate();
 
 jack_nframes_t audio_buffer_get_available();
 void audio_buffer_read(int nport, sample_t *frames, jack_nframes_t nframes);
-
-extern jack_nframes_t audio_samplerate;
-
-extern jack_ringbuffer_t **audio_buffers;
 
 #endif // _AUDIO_H

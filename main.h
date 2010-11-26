@@ -1,7 +1,7 @@
 /*
  * jack_oscrolloscope
  *
- * Copyright (C) 2006  Dominic Sacré  <dominic.sacre@gmx.de>
+ * Copyright (C) 2006-2010  Dominic Sacré  <dominic.sacre@gmx.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,7 +14,7 @@
 
 #include <stdbool.h>
 
-#define VERSION                     0.6
+#define VERSION                     0.7
 
 #define DEFAULT_WIDTH               480
 #define DEFAULT_HEIGHT_PER_TRACK    120
@@ -24,8 +24,15 @@
 #define DEFAULT_DURATION            5
 
 
-extern bool main_run;
-extern int  main_nports;
+extern bool g_run;
+extern int  g_nports;
 
+extern int  g_ticks_per_frame;
+extern bool g_scrolling;
+extern int  g_width, g_height;
+extern bool g_use_gl;
+
+extern int  g_duration;
+extern bool g_show_clipping;
 
 #endif // _MAIN_H

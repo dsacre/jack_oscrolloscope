@@ -1,7 +1,7 @@
 /*
  * jack_oscrolloscope
  *
- * Copyright (C) 2006  Dominic Sacré  <dominic.sacre@gmx.de>
+ * Copyright (C) 2006-2010  Dominic Sacré  <dominic.sacre@gmx.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,17 +20,8 @@ void video_flip();
 
 extern void (*video_update)(int, int);
 
-
-extern int  video_ticks_per_frame;
-extern bool video_scrolling;
-
-extern bool video_use_gl;
-extern int  video_width, video_height;
-
-extern SDL_Surface *video_screen;
-extern SDL_Surface *video_draw_surface;
-
-extern SDL_PixelFormat *video_pix_fmt;
-
+SDL_Surface *video_get_screen();
+SDL_Surface *video_get_draw_surface();
+SDL_PixelFormat *video_get_pix_fmt();
 
 #endif // _VIDEO_H
