@@ -1,7 +1,7 @@
 PREFIX =	/usr/local
 
 CFLAGS +=	$(shell sdl-config --cflags) $(shell pkg-config --cflags jack) -W -Wall -std=gnu99
-LIBS =		$(shell sdl-config --libs) $(shell pkg-config --libs jack) -lGL
+LIBS =		$(shell sdl-config --libs) $(shell pkg-config --libs jack) -lGL -lX11
 
 CFLAGS +=	-O2
 

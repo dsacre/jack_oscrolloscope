@@ -108,9 +108,11 @@ static void audio_exit()
     }
     free(input_ports);
     if (buffers) {
-        for (int n = 0; n < g_nports; n++) jack_ringbuffer_free(buffers[n]);
+        for (int n = 0; n < g_nports; n++) {
+            jack_ringbuffer_free(buffers[n]);
+        }
+        free(buffers);
     }
-    free(buffers);
 }
 
 

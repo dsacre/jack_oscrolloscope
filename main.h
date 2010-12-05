@@ -13,6 +13,7 @@
 #define _MAIN_H
 
 #include <stdbool.h>
+#include <SDL.h>
 
 #define VERSION                     0.7
 
@@ -29,10 +30,17 @@ extern int  g_nports;
 
 extern int  g_ticks_per_frame;
 extern bool g_scrolling;
-extern int  g_width, g_height;
+extern int  g_width;
+extern int  g_height;
+extern int  g_total_height;
 extern bool g_use_gl;
 
 extern int  g_duration;
 extern bool g_show_clipping;
+
+extern Uint32  *g_colors;
+extern float   *g_scales;
+extern int     *g_heights;
+
 
 #endif // _MAIN_H

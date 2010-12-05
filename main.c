@@ -10,6 +10,7 @@
  */
 
 #include <SDL.h>
+#include <X11/Xlib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -33,10 +34,18 @@ int  g_ticks_per_frame = 1000 / DEFAULT_FPS;
 bool g_scrolling = true;
 int  g_width = DEFAULT_WIDTH;
 int  g_height = 0;
+int  g_total_height;
 bool g_use_gl = false;
 
 int  g_duration = DEFAULT_DURATION;
 bool g_show_clipping = false;
+
+Uint32  *g_colors = NULL;
+float   *g_scales = NULL;
+int     *g_heights = NULL;
+int     ncolors = 0;
+int     nscales = 0;
+int     nheights = 0;
 
 
 static void print_usage()
@@ -54,6 +63,9 @@ static void print_usage()
             "  -s               disable scrolling\n"
             "  -x <pixels>      set window width\n"
             "  -y <pixels>      set window height\n"
+            "  -C <color,...>   set waveform color\n"
+            "  -S <scale,...>   set waveform scale\n"
+            "  -Y <height,...>  set waveform height (per port)\n"
             "  -g               use OpenGL for drawing\n"
             "  -f <fps>         video frames per second (default " STRINGIFY(DEFAULT_FPS) ", 0 = unlimited/vsync)\n"
             "  -h               show this help\n");
@@ -69,10 +81,98 @@ static inline bool optional_bool(const char* arg)
 }
 
 
+static int count_char(const char *s, char c)
+{
+    int n = 0;
+    while (*s != '\0') {
+        if (*s++ == c) ++n;
+    }
+    return n;
+}
+
+
+static void parse_colors(char *s)
+{
+    int n = ncolors + 1 + count_char(s, ',');
+
+    g_colors = (Uint32*)realloc(g_colors, n * sizeof(Uint32));
+
+    // we'll need an X display for this... yuck!
+    Display *dpy = XOpenDisplay(NULL);
+    if (!dpy) {
+        fprintf(stderr, "can't open display\n");
+        exit(EXIT_FAILURE);
+    }
+    Colormap cmap = DefaultColormap(dpy, 0);
+
+    // tokenize the string and parse each color
+    char *p = strsep(&s, ",");
+    while (p) {
+        Uint32 c;
+        if (strlen(p) || !ncolors) {
+            XColor color;
+            if (!XParseColor(dpy, cmap, p, &color)) {
+                fprintf(stderr, "can't parse color: %s\n", p);
+                exit(EXIT_FAILURE);
+            }
+
+            c = (color.red / 256) << 16 | (color.green / 256) << 8 | (color.blue / 256);
+        } else {
+            c = g_colors[ncolors - 1];
+        }
+        g_colors[ncolors++] = c;
+
+        p = strsep(&s, ",");
+    }
+}
+
+
+static void parse_scales(char *s)
+{
+    int n = nscales + 1 + count_char(s, ',');
+
+    g_scales = (float*)realloc(g_scales, n * sizeof(float));
+
+    char *p = strsep(&s, ",");
+    while (p) {
+        float f;
+        if (strlen(p) || !nscales) {
+            f = atof(p);
+        } else {
+            f = g_scales[nscales - 1];
+        }
+        g_scales[nscales++] = f;
+
+        p = strsep(&s, ",");
+    }
+}
+
+
+static void parse_heights(char *s)
+{
+    int n = nheights + 1 + count_char(s, ',');
+
+    g_heights = (int*)realloc(g_heights, n * sizeof(int));
+
+    char *p = strsep(&s, ",");
+    while(p) {
+        int h;
+        if (strlen(p) || !nheights) {
+            h = atoi(p);
+        } else {
+            h = g_heights[nheights - 1];
+        }
+        g_heights[nheights++] = h;
+
+        p = strsep(&s, ",");
+    }
+}
+
+
 static void process_options(int argc, char *argv[])
 {
     int c;
-    const char *optstring = "N:n:d:c::s::x:y:g::f:h";
+    const char *optstring = "N:n:d:c::s::x:y:C:S:Y:g::f:h";
 
     optind = 1;
     opterr = 1;
@@ -103,6 +203,15 @@ static void process_options(int argc, char *argv[])
             case 'y':
                 g_height = atoi(optarg);
                 break;
+            case 'C':
+                parse_colors(optarg);
+                break;
+            case 'S':
+                parse_scales(optarg);
+                break;
+            case 'Y':
+                parse_heights(optarg);
+                break;
             case 'g':
                 g_use_gl = optional_bool(optarg);
                 break;
@@ -112,8 +221,10 @@ static void process_options(int argc, char *argv[])
                     else g_ticks_per_frame = 0;
               } break;
             case 'h':
-            default:
                 print_usage();
+                exit(EXIT_SUCCESS);
+                break;
+            default:
                 exit(EXIT_FAILURE);
                 break;
         }
@@ -148,23 +259,63 @@ static void process_configfile()
 }
 
 
+static void main_exit()
+{
+    free(g_colors);
+    free(g_scales);
+    free(g_heights);
+}
+
+
 int main(int argc, char *argv[])
 {
     SDL_Event event;
 
+    atexit(main_exit);
+
     process_configfile();
     process_options(argc, argv);
+
+    // use g_nports if specified, otherwise use the number of port arguments.
+    // if neither is given, create just one port
+    int nportargs = argc - optind;
+    g_nports = max(1, g_nports ? : nportargs);
+
+    // now that we know the actual number of ports, repeat the last color/scale/height value
+    // as often as necessary
+    if (g_colors) {
+        g_colors = (Uint32*)realloc(g_colors, g_nports * sizeof(Uint32));
+        for (int n = ncolors; n < g_nports; ++n) {
+            g_colors[n] = g_colors[ncolors - 1];
+        }
+    }
+
+    if (g_scales) {
+        g_scales = (float*)realloc(g_scales, g_nports * sizeof(float));
+        for (int n = nscales; n < g_nports; ++n) {
+            g_scales[n] = g_scales[nscales - 1];
+        }
+    }
+
+    if (g_heights) {
+        g_heights = (int*)realloc(g_heights, g_nports * sizeof(int));
+        for (int n = nheights; n < g_nports; ++n) {
+            g_heights[n] = g_heights[nheights - 1];
+        }
+        // g_heights overrides g_height
+        g_height = 0;
+        for (int n = 0; n < g_nports; ++n) {
+            g_height += g_heights[n];
+        }
+        g_total_height = g_height;
+    }
+
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "can't init SDL: %s\n", SDL_GetError());
         exit(EXIT_FAILURE);
     }
     atexit(SDL_Quit);
-
-    // use opt_nports if specified, otherwise use the number of port arguments.
-    // if neither is given, create just one port
-    int nportargs = argc - optind;
-    g_nports = max(1, g_nports ? : nportargs);
 
     audio_init(g_client_name, (const char * const *)&argv[optind]);
 
