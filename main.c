@@ -24,28 +24,28 @@
 #include "util.h"
 
 
-bool g_run = false;
+bool    g_run = false;
+int     g_nports = 0;
 
-char const * g_client_name = "jack_oscrolloscope";
-int  g_nports = 0;
+int     g_ticks_per_frame = 1000 / DEFAULT_FPS;
+bool    g_scrolling = true;
+int     g_width = DEFAULT_WIDTH;
+int     g_height = 0;
+int     g_total_height;
+bool    g_use_gl = false;
 
-int  g_ticks_per_frame = 1000 / DEFAULT_FPS;
-
-bool g_scrolling = true;
-int  g_width = DEFAULT_WIDTH;
-int  g_height = 0;
-int  g_total_height;
-bool g_use_gl = false;
-
-int  g_duration = DEFAULT_DURATION;
-bool g_show_clipping = false;
+float   g_duration = DEFAULT_DURATION;
+bool    g_show_clipping = false;
 
 Uint32  *g_colors = NULL;
 float   *g_scales = NULL;
 int     *g_heights = NULL;
-int     ncolors = 0;
-int     nscales = 0;
-int     nheights = 0;
+
+static int  ncolors = 0;
+static int  nscales = 0;
+static int  nheights = 0;
+
+static char const * g_client_name = "jack_oscrolloscope";
 
 
 static void print_usage()
@@ -189,7 +189,7 @@ static void process_options(int argc, char *argv[])
                 g_nports = atoi(optarg);
                 break;
             case 'd':
-                g_duration = atoi(optarg);
+                g_duration = atof(optarg);
                 break;
             case 'c':
                 g_show_clipping = optional_bool(optarg);
