@@ -32,7 +32,7 @@ bool    g_scrolling = true;
 int     g_width = DEFAULT_WIDTH;
 int     g_height = 0;
 int     g_total_height;
-bool    g_use_gl = false;
+bool    g_use_gl = true;
 
 float   g_duration = DEFAULT_DURATION;
 bool    g_show_clipping = false;
@@ -66,7 +66,7 @@ static void print_usage()
             "  -C <color,...>   set waveform color\n"
             "  -S <scale,...>   set waveform scale\n"
             "  -Y <height,...>  set waveform height (per port)\n"
-            "  -g               use OpenGL for drawing\n"
+            "  -G               don't use OpenGL for drawing\n"
             "  -f <fps>         video frames per second (default " STRINGIFY(DEFAULT_FPS) ", 0 = unlimited/vsync)\n"
             "  -h               show this help\n");
 }
@@ -172,7 +172,7 @@ static void parse_heights(char *s)
 static void process_options(int argc, char *argv[])
 {
     int c;
-    const char *optstring = "N:n:d:c::s::x:y:C:S:Y:g::f:h";
+    const char *optstring = "N:n:d:c::s::x:y:C:S:Y:g::Gf:h";
 
     optind = 1;
     opterr = 1;
@@ -214,6 +214,9 @@ static void process_options(int argc, char *argv[])
                 break;
             case 'g':
                 g_use_gl = optional_bool(optarg);
+                break;
+            case 'G':
+                g_use_gl = false;
                 break;
             case 'f':
               { int fps = atoi(optarg);

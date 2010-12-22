@@ -21,7 +21,6 @@
 #define DEFAULT_HEIGHT_PER_TRACK    120
 #define DEFAULT_HEIGHT_MAX          480
 #define DEFAULT_FPS                 50
-
 #define DEFAULT_DURATION            5
 
 

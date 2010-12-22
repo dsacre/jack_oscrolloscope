@@ -116,6 +116,9 @@ void video_set_mode(int w, int h)
     if ((screen = SDL_SetVideoMode(g_width, g_height, VIDEO_BPP, (g_use_gl ? VIDEO_FLAGS_GL : VIDEO_FLAGS_SDL))) == NULL)
     {
         fprintf(stderr, "can't set video mode: %s\n", SDL_GetError());
+        if (g_use_gl) {
+            fprintf(stderr, "you may want to try disabling OpenGL support using the -G command line option\n");
+        }
         exit(EXIT_FAILURE);
     }
 
