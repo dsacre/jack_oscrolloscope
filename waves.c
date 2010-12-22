@@ -119,7 +119,8 @@ void waves_adjust()
         draw_heights[n] = track_heights[n] - (int)(track_heights[n] % 2 == 0);
     }
 
-    frames_per_line = (audio_get_samplerate() * g_duration) / g_width;
+    // don't allow frames_per_line to be zero
+    frames_per_line = max((audio_get_samplerate() * g_duration) / g_width, 1);
     draw_pos = 0;
 
     frames = (sample_t*)realloc(frames, frames_per_line * sizeof(sample_t));
@@ -219,9 +220,16 @@ static void waves_draw_play_head_sdl(int pos)
 void waves_draw()
 {
     int prev_pos = draw_pos;
+    int count = 0;
 
     while (audio_buffer_get_available() >= frames_per_line)
     {
+        // this is just a simplistic safeguard in case we can't keep up with incoming audio samples.
+        // the waveform might be garbled, but at least this way the program won't lock up completely.
+        if (++count > 4096) {
+            break;
+        }
+
         waves_clear_line_all(g_use_gl ? 0 : draw_pos);
 
         for (int n = 0; n < g_nports; n++)
