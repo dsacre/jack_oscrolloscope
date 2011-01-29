@@ -1,7 +1,7 @@
 /*
  * jack_oscrolloscope
  *
- * Copyright (C) 2006-2010  Dominic Sacré  <dominic.sacre@gmx.de>
+ * Copyright (C) 2006-2011  Dominic Sacré  <dominic.sacre@gmx.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ static void print_usage()
     fprintf(stderr, "jack_oscrolloscope " STRINGIFY(VERSION) "\n"
             "\n"
             "Usage:\n"
-            "  jack_oscrolloscope [ options ] [ port1 port2 ... ]\n"
+            "  jack_oscrolloscope [options] [port ...]\n"
             "\n"
             "Options:\n"
             "  -N <name>        JACK client name\n"
@@ -172,7 +172,7 @@ static void parse_heights(char *s)
 static void process_options(int argc, char *argv[])
 {
     int c;
-    const char *optstring = "N:n:d:c::s::x:y:C:S:Y:g::Gf:h";
+    const char *optstring = "N:n:d:c::s::x:y:C:S:Y:g::G::f:h";
 
     optind = 1;
     opterr = 1;
@@ -216,7 +216,7 @@ static void process_options(int argc, char *argv[])
                 g_use_gl = optional_bool(optarg);
                 break;
             case 'G':
-                g_use_gl = false;
+                g_use_gl = !optional_bool(optarg);
                 break;
             case 'f':
               { int fps = atoi(optarg);
