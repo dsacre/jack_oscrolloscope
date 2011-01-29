@@ -79,16 +79,15 @@ Port arguments are not yet supported in the config file.
 jack_oscrolloscope eats too much CPU:
 -------------------------------------
 
-Unfortunately, with SDL, scrolling currently can't be hardware accelerated
-on X11. If this is an issue, use OpenGL (-g), disable scrolling (-s), or
-reduce the window size / number of tracks.
+Unfortunately, with SDL (option -G), scrolling currently can't be hardware
+accelerated on X11. If this is an issue, use OpenGL, disable scrolling (-s),
+or reduce the window size / number of tracks.
 
 Too much jitter...:
 -------------------
 
 If scrolling is not as smooth as it ought to be, you should...
 
-  * Use OpenGL. This is enabled by the "-g" switch.
   * Enable vsync (highly recommended). How to do this depends on your
     hardware/driver. If you're using the Nvidia driver, jack_oscrolloscope
     will automatically enable vsync by setting the environment variable
@@ -96,6 +95,6 @@ If scrolling is not as smooth as it ought to be, you should...
   * Once vsync is working, use the "-f 0" swich to make sure that
     jack_oscrolloscope runs at the same frequency as your monitor.
 
-You may want to put "-g -f 0" into your ~/.jack_oscrolloscoperc.
+You may want to put "-f 0" into your ~/.jack_oscrolloscoperc.
 Do not use -f 0 unless vsync is actally working, as that would only cause
 a useless waste of CPU cycles.
