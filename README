@@ -1,6 +1,6 @@
 jack_oscrolloscope
 
-Copyright (C) 2006  Dominic Sacré  <dominic.sacre@gmx.de>
+Copyright (C) 2006-2011  Dominic Sacré  <dominic.sacre@gmx.de>
 
 
 1. Building
@@ -33,18 +33,30 @@ make PREFIX=/usr install
 Command line options:
 ---------------------
 
-jack_oscrolloscope [ options ] [ port1 port2 ... ]
+jack_oscrolloscope [options] [port ...]
 
-  -N <name>    JACK client name
-  -n <number>  number of input ports
-  -d <seconds> duration of audio being displayed (default 5s)
-  -c           indicate clipping
-  -s           disable scrolling
-  -x <pixels>  set window width
-  -y <pixels>  set window height
-  -g           use OpenGL for drawing
-  -f <fps>     video frames per second (default 50, 0=unlimited/vsync)
-  -h           show this help
+  -N <name>        JACK client name
+  -n <number>      number of input ports
+  -d <seconds>     duration of audio being displayed (default 5s)
+  -c               indicate clipping
+  -s               disable scrolling
+  -x <pixels>      set window width
+  -y <pixels>      set window height
+  -C <color,...>   set waveform color
+  -S <scale,...>   set waveform scale
+  -Y <height,...>  set waveform height (per port)
+  -G               don't use OpenGL for drawing
+  -f <fps>         video frames per second (default 50, 0 = unlimited/vsync)
+  -h               show this help
+
+Arguments to the -C, -S and -Y options can be either a single value, or a
+comma-separated list of values, one for each port. To use the same value
+for multiple consecutive ports, just type multiple commas in a row, with no
+value in between.
+
+Color values passed to the -C option can be one of the defined X11 color
+names, or hexadecimal color codes starting with '#'.
+
 
 Config file:
 ------------
@@ -86,5 +98,4 @@ If scrolling is not as smooth as it ought to be, you should...
 
 You may want to put "-g -f 0" into your ~/.jack_oscrolloscoperc.
 Do not use -f 0 unless vsync is actally working, as that would only cause
-a useless waste of CPU cycles. 
-
+a useless waste of CPU cycles.
